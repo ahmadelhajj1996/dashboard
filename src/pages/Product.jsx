@@ -9,7 +9,7 @@ import Modal from "../components/Modal";
 import Delete from "../components/Delete";
 import Loading from "../components/Loading";
 
-import FormikInput from "../components/FormikInput";
+import FormikInput from "../components/Formikinput";
 import FormikSelect from "../components/Formikselect";
 import Formikimagem from "../components/Formikimagem";
 

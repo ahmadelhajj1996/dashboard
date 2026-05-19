@@ -61,7 +61,7 @@ function Order() {
 
   return (
     <>
-      <Info title={`  عناصر الطلب ذو الرقم   " ${data?.order_number} " `} />
+      <Info title={`  عناصر الطلب ذو الرقم   " ${data?.order_number} " `} back={true} />
 
       <div className="grid grid-cols-4 gap-y-4 text-sm py-8 px-4">
         <Detail label="تاريخ الطلب" value={data?.created_at} />

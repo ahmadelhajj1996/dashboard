@@ -106,7 +106,7 @@ function Variation() {
         <div className="flex flex-col gap-y-3">
           <Detail label="اسم المنتج" value={normalized?.product?.name} />
 
-          <Detail label="الكود" value={`${normalized?.sku ?? "___"}`} />
+          <Detail label="الكود ( الرجاء عدم تكرار هذا الحقل اطلاقا )" value={`${normalized?.sku ?? "___"}`} />
 
           <Detail label="السعر" value={`${normalized?.price ?? "___"}`} />
 

@@ -27,7 +27,7 @@ const Login = () => {
           admin: response.data.user,
         }),
       );
-      navigatet("/");
+      navigatet("/home");
       toastr("تم تسجيل الدخول", "success");
       resetForm();
     } catch (error) {

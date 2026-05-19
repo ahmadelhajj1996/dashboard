@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route , Navigate } from "react-router-dom";
 import AuthenticatedLayout from "../layouts/authenticated";
 import PublicLayout from "../layouts/public";
 import Home from "../pages/Home";
@@ -17,6 +17,10 @@ import Messages from "../pages/Messages";
 function App() {
   return (
     <Routes>
+
+            <Route path="/" element={<Navigate to="/login" replace />} />
+
+      
       <Route element={<PublicLayout />}>
         <Route path="/login" element={<Login />} />
       </Route>

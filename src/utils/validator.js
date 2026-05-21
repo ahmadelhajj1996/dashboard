@@ -85,7 +85,7 @@ export const productSchema = yup.object({
 
 export const variationSchema = yup.object({
 
-    sku: yup.required("الرمز مطلوب")
+    sku: yup.required("الرمز مطلوب"),
   
   price: yup.number()
     .typeError("السعر يجب أن يكون رقمًا")

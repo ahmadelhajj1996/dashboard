@@ -35,7 +35,7 @@ function Navbar() {
         try {
           await axios.post(
             // "http://127.0.0.1:8000/api/admin/logout",
-            "https://phplaravel-1626350-6427540.cloudwaysapps.com/api/admin/logout"
+            "https://phplaravel-1626350-6427540.cloudwaysapps.com/api/admin/logout",
 
             null,
             {

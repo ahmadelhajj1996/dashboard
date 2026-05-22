@@ -6,7 +6,7 @@ import { store } from "../store/store";
 const api = axios.create({
       baseURL: "http://127.0.0.1:8000/api/",
 
-  // baseURL: "https://phplaravel-1626350-6427540.cloudwaysapps.com/api/",
+  baseURL: "https://phplaravel-1626350-6427540.cloudwaysapps.com/api/",
   headers: {
     "Content-Type": "multipart/form-data",
   },

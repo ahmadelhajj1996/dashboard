@@ -3,7 +3,7 @@ import Pusher from "pusher-js";
 
 window.Pusher = Pusher;
 
-// Pusher.logToConsole = true
+Pusher.logToConsole = true
 
 let echo = null;
 

@@ -15,15 +15,15 @@ export const createEcho = (token) => {
     echo = new Echo({
         broadcaster: "pusher",
 
-        key: import.meta.env.VITE_PUSHER_APP_KEY,
+        key: "76870f1c1806cc303ab9",
 
-        cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+        cluster: "eu",
 
         forceTLS: true,
 
         encrypted: true,
 
-        authEndpoint: `${import.meta.env.VITE_API_URL}/admin/broadcasting/auth`,
+        authEndpoint: `https://phplaravel-1626350-6427540.cloudwaysapps.com/api/admin/broadcasting/auth`,
 
         auth: {
             headers: {

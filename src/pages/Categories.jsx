@@ -1,35 +1,23 @@
 import { useMemo } from "react";
-
+import { useCategories } from "../hooks/useData";
 import Table from "../components/Table";
-import Loading from "../components/Loading";
 import Control from "../components/Control";
 import Modal from "../components/Modal";
 import Delete from "../components/Delete";
 import FormikInput from "../components/Formikinput";
-
 import { Formik, Form } from "formik";
-
 import { categorycols } from "../utils/columns";
 import { categorySchema } from "../utils/validator";
-
-import { useGet, usePost, useDelete } from "../hooks/useApi";
+import { usePost, useDelete } from "../hooks/useApi";
 import useSearch from "../hooks/useSearch";
 import useQueryState from "../hooks/useQueryState";
 import { useModal } from "../hooks/useModal";
 import useDel from "../hooks/useDelete";
 import { useForm } from "../hooks/useForm";
-
 import toFormData from "../utils/toFormData";
 import Info from "../components/Info";
-// import Formikimage from "../components/Formikimage";
 import notify from "../utils/toastr";
 function Categories() {
-  /*
-   |--------------------------------------------------------------------------
-   | Query State
-   |--------------------------------------------------------------------------
-   */
-
   const { filters, setFilters } = useQueryState({
     parent_id: "",
   });
@@ -41,30 +29,19 @@ function Categories() {
     [parent_id],
   );
 
-  const {
-    data: categories = [],
-    isFetched,
-    refetch,
-  } = useGet(queryKey, "categories", {
-    staleTime: 0,
-
-    refetchOnMount: true,
-
-    refetchOnWindowFocus: true,
-
-    select: (response) =>
-      response?.data?.filter((item) =>
+  const { data: categories = [], refetch , isFetched } = useCategories(parent_id, {
+    select: (response) => {
+      const data = response?.data || [];
+      return data.filter((item) =>
         parent_id
           ? String(item.parent_id) === String(parent_id)
           : item.parent_id == null,
-      ) || [],
+      );
+    },
   });
-
-  console.log(categories ?? []);
 
   const data = useMemo(() => {
     if (!categories) return [];
-
     return categories.map((item) => ({
       id: item?.id,
       name: item?.name,
@@ -75,27 +52,9 @@ function Categories() {
     }));
   }, [categories]);
 
-  /*
-   |--------------------------------------------------------------------------
-   | Search
-   |--------------------------------------------------------------------------
-   */
-
   const { search, setSearch, filteredData } = useSearch(data, ["name"]);
 
-  /*
-   |--------------------------------------------------------------------------
-   | Modal
-   |--------------------------------------------------------------------------
-   */
-
   const { isOpen, modalData, modalMode, openModal, closeModal } = useModal();
-
-  /*
-   |--------------------------------------------------------------------------
-   | Create / Update Category
-   |--------------------------------------------------------------------------
-   */
 
   const addItem = usePost({
     invalidateQueries: [queryKey, ["categories"]],
@@ -116,20 +75,12 @@ function Categories() {
     onSuccess: async () => {
       await refetch();
       notify("تمت العملية بنجاح ", "success");
-
     },
 
     onError: () => {
       notify("هناك خطأ ما ", "error");
-
     },
   });
-
-  /*
-   |--------------------------------------------------------------------------
-   | Delete Logic
-   |--------------------------------------------------------------------------
-   */
 
   const { deleteOpen, itemName, openDelete, closeDelete, confirmDelete } =
     useDel(async (deletedItem) => {
@@ -144,12 +95,6 @@ function Categories() {
         console.error(error);
       }
     });
-
-  /*
-   |--------------------------------------------------------------------------
-   | Submit
-   |----------------------------------------------p----------------------------
-   */
 
   const handleSubmit = async (values, { resetForm, setSubmitting }) => {
     try {
@@ -185,12 +130,6 @@ function Categories() {
     }
   };
 
-  /*
-   |--------------------------------------------------------------------------
-   | Initial Values
-   |--------------------------------------------------------------------------
-   */
-
   const initialValues = useMemo(() => {
     if (modalMode === "edit" && modalData) {
       return {
@@ -211,12 +150,6 @@ function Categories() {
     };
   }, [modalMode, modalData, parent_id]);
 
-  /*
-   |--------------------------------------------------------------------------
-   | Form
-   |--------------------------------------------------------------------------
-   */
-
   const { formikProps, handleConfirm } = useForm({
     onSubmit: handleSubmit,
 
@@ -224,12 +157,6 @@ function Categories() {
 
     validationSchema: categorySchema,
   });
-
-  // console.log(parentCategory);
-
-  if (!isFetched) {
-    return <Loading />;
-  }
 
   return (
     <>
@@ -250,11 +177,11 @@ function Categories() {
         onClick={() => openModal("add")}
       />
 
-      <div className="w-1/2">
+      {isFetched && (
         <Table
           columns={categorycols}
           data={filteredData}
-          rowsPerPage={5}
+          rowsPerPage={10}
           showPagination={true}
           paginationPosition="bottom"
           actions={{
@@ -274,7 +201,7 @@ function Categories() {
             openDelete(row, row.name);
           }}
         />
-      </div>
+      )}
 
       {/* MODAL */}
       <Modal

@@ -1,5 +1,4 @@
 import FormikInput from "../components/Formikinput";
-import Loading from "../components/Loading";
 import Control from "../components/Control";
 import Table from "../components/Table";
 import Modal from "../components/Modal";
@@ -8,7 +7,7 @@ import Delete from "../components/Delete";
 import { useMemo } from "react";
 import { Formik, Form } from "formik";
 
-import { useGet, usePost, useDelete } from "../hooks/useApi";
+import { usePost, useDelete } from "../hooks/useApi";
 import { useModal } from "../hooks/useModal";
 import useDel from "../hooks/useDelete";
 import { useForm } from "../hooks/useForm";
@@ -20,17 +19,17 @@ import { messageSchema } from "../utils/validator";
 import toFormData from "../utils/toFormData";
 import Info from "../components/Info";
 import notify from "../utils/toastr";
+import { useMessages } from "../hooks/useData";
 
 function Messages() {
-
-  // GET DATA
-  const { data, isFetched, refetch } = useGet(["messages"], "messages", {
-    staleTime: Infinity,
-
+  const {
+    data = [],
+    isFetched,
+    refetch,
+  } = useMessages({
     select: (response) => response?.data?.data,
   });
 
-  // NORMALIZE DATA
   const normalized = useMemo(() => {
     if (!data) return [];
 
@@ -40,7 +39,6 @@ function Messages() {
     }));
   }, [data]);
 
-  // SEARCH
   const { search, setSearch, filteredData } = useSearch(normalized ?? [], [
     "content",
   ]);
@@ -72,7 +70,6 @@ function Messages() {
     },
   });
 
-  // DELETE MODAL
   const { deleteOpen, itemName, openDelete, closeDelete, confirmDelete } =
     useDel(async (deletedItem) => {
       try {
@@ -87,7 +84,6 @@ function Messages() {
       }
     });
 
-  // SUBMIT
   const handleSubmit = async (values, { resetForm, setSubmitting }) => {
     try {
       const formData = toFormData(values);
@@ -141,13 +137,8 @@ function Messages() {
     validationSchema: messageSchema,
   });
 
-  if (!isFetched) {
-    return <Loading />;
-  }
-
   return (
     <>
-
       <Info title={` الرسائل الترحيبية`} />
 
       <Control
@@ -159,23 +150,24 @@ function Messages() {
           openModal("add");
         }}
       />
-
-      <Table
-        columns={messagecols}
-        data={filteredData}
-        onEdit={(item) => {
-          openModal("edit", item);
-        }}
-        onDelete={(item) => openDelete(item, item.name)}
-        rowsPerPage={8}
-        showPagination={true}
-        paginationPosition="bottom"
-        actions={{
-          // showView: true,
-          showEdit: true,
-          showDelete: true,
-        }}
-      />
+      {isFetched && (
+        <Table
+          columns={messagecols}
+          data={filteredData}
+          onEdit={(item) => {
+            openModal("edit", item);
+          }}
+          onDelete={(item) => openDelete(item, item.name)}
+          rowsPerPage={8}
+          showPagination={true}
+          paginationPosition="bottom"
+          actions={{
+            // showView: true,
+            showEdit: true,
+            showDelete: true,
+          }}
+        />
+      )}
 
       <Modal
         isOpen={isOpen}
@@ -187,7 +179,7 @@ function Messages() {
       >
         <Formik {...formikProps}>
           <Form className="space-y-4">
-            <FormikInput name="content" label="نص الرسالة :" placeholder="" />
+            <FormikInput type={"textarea"} name="content" label="نص الرسالة :" placeholder="" />
           </Form>
         </Formik>
       </Modal>

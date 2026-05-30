@@ -48,9 +48,8 @@ export default function Select({
             disabled={option.disabled}
             className=" field px-2  bg-white
                       text-gray-900
-                      hover:bg-cyan-600
                       hover:text-white
-                      checked:bg-cyan-600
+                      checked:bg-blue-600
                       checked:text-white"
           >
             {option.label}
@@ -106,15 +105,4 @@ Select.propTypes = {
  
 
 
-          {/* <Select
-          label="Category"
-          value={category}
-          onChange={(value) => {
-            setCategory(value);
-            console.log("done", value);
-          }}
-          options={[
-            { label: "Electronics", value: "electronics" },
-            { label: "Clothes", value: "clothes" },
-          ]}
-        /> */}
+  

@@ -7,9 +7,8 @@ import Control from "../components/Control";
 import Table from "../components/Table";
 import Modal from "../components/Modal";
 import Delete from "../components/Delete";
-import Loading from "../components/Loading";
 
-import { useGet, usePost, useDelete } from "../hooks/useApi";
+import { usePost, useDelete } from "../hooks/useApi";
 import { useModal } from "../hooks/useModal";
 import useDel from "../hooks/useDelete";
 import { useForm } from "../hooks/useForm";
@@ -21,23 +20,12 @@ import { optionSchema } from "../utils/validator";
 import toFormData from "../utils/toFormData";
 import Info from "../components/Info";
 import notify from "../utils/toastr";
+import { useAttributeOptions } from "../hooks/useData";
 
 function Attribute() {
   const { id: attribute_id } = useParams();
 
-  // GET DATA
-  const { data, isFetched, refetch } = useGet(
-    ["attributes-options"],
-    "attributes-options",
-    {
-      staleTime: Infinity,
-
-      select: (response) =>
-        response?.data?.data?.filter(
-          (item) => item.attribute_id == attribute_id,
-        ),
-    },
-  );
+  const { data, isFetched, refetch } = useAttributeOptions(attribute_id);
 
   const normalized = useMemo(() => {
     if (!data) return [];
@@ -48,8 +36,6 @@ function Attribute() {
       attribute: item.attribute,
     }));
   }, [data]);
-
-
 
   const { search, setSearch, filteredData } = useSearch(normalized ?? [], [
     "value",
@@ -156,17 +142,9 @@ function Attribute() {
     validationSchema: optionSchema,
   });
 
-  // LOADING
-  if (!isFetched) {
-    return <Loading />;
-  }
-
   return (
     <>
-      <Info
-        title={` قيم  ${normalized[0]?.attribute.name}  `}
-        back={true}
-      />
+      <Info title={` قيم  ${normalized[0]?.attribute.name}  `} back={true} />
       <Control
         searchable={true}
         isPlus={true}
@@ -176,7 +154,7 @@ function Attribute() {
           openModal("add");
         }}
       />
-      <div className="w-1/2 ">
+      {isFetched && (
         <Table
           columns={optioncols}
           data={filteredData}
@@ -193,7 +171,7 @@ function Attribute() {
             showDelete: true,
           }}
         />
-      </div>
+      )}
 
       {/* MODAL */}
       <Modal

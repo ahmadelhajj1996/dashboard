@@ -1,6 +1,5 @@
 import FormikInput from "../components/Formikinput";
 import FormikSelect from "../components/Formikselect";
-import Loading from "../components/Loading";
 import Control from "../components/Control";
 import Table from "../components/Table";
 import Modal from "../components/Modal";
@@ -10,7 +9,7 @@ import { useMemo } from "react";
 import { Formik, Form } from "formik";
 import { useNavigate } from "react-router-dom";
 
-import { useGet, usePost, useDelete } from "../hooks/useApi";
+import {  usePost, useDelete } from "../hooks/useApi";
 import { useSelect } from "../hooks/useSelect";
 import { useModal } from "../hooks/useModal";
 import useDel from "../hooks/useDelete";
@@ -23,16 +22,12 @@ import { attributeSchema } from "../utils/validator";
 import toFormData from "../utils/toFormData";
 import Info from "../components/Info";
 import notify from "../utils/toastr";
+import { useAttributes } from "../hooks/useData";
 
 function Attributes() {
   const navigate = useNavigate();
 
-  // GET DATA
-  const { data, isFetched } = useGet(["attributes"], "attributes", {
-    staleTime: Infinity,
-
-    select: (response) => response?.data?.data,
-  });
+  const { data = [], isFetched } = useAttributes();
 
   // NORMALIZE DATA
   const normalized = useMemo(() => {
@@ -158,10 +153,6 @@ function Attributes() {
     validationSchema: attributeSchema,
   });
 
-  if (!isFetched) {
-    return <Loading />;
-  }
-
   return (
     <>
       <Info title={`  حدول الصفات`} />
@@ -174,24 +165,25 @@ function Attributes() {
           openModal("add");
         }}
       />
-
-      <Table
-        columns={attributecols}
-        data={filteredData}
-        onView={(row) => navigate(`/attributes/${row.id}`)}
-        onEdit={(item) => {
-          openModal("edit", item);
-        }}
-        onDelete={(item) => openDelete(item, item.name)}
-        rowsPerPage={5}
-        showPagination={true}
-        paginationPosition="bottom"
-        actions={{
-          showView: true,
-          showEdit: true,
-          showDelete: true,
-        }}
-      />
+      {isFetched && (
+        <Table
+          columns={attributecols}
+          data={filteredData}
+          onView={(row) => navigate(`/attributes/${row.id}`)}
+          onEdit={(item) => {
+            openModal("edit", item);
+          }}
+          onDelete={(item) => openDelete(item, item.name)}
+          rowsPerPage={5}
+          showPagination={true}
+          paginationPosition="bottom"
+          actions={{
+            showView: true,
+            showEdit: true,
+            showDelete: true,
+          }}
+        />
+      )}
 
       <Modal
         isOpen={isOpen}
@@ -200,6 +192,7 @@ function Attributes() {
         size="md"
         showFooter={true}
         onConfirm={handleConfirm}
+        isConfirmLoading={addItem.isPending}
       >
         <Formik {...formikProps}>
           <Form className="space-y-4">

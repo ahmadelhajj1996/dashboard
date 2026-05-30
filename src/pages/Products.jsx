@@ -1,251 +1,151 @@
 import { useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Formik, Form } from "formik";
-
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Control from "../components/Control";
 import Select from "../components/Select";
 import Table from "../components/Table";
+import { useCategories, useProducts } from "../hooks/useData";
+import { productcols } from "../utils/columns";
+import { useDelete, usePost } from "../hooks/useApi";
+import useSearch from "../hooks/useSearch";
+import notify from "../utils/toastr";
+import useDel from "../hooks/useDelete";
+import toFormData from "../utils/toFormData";
+import { productSchema } from "../utils/validator";
+import { useSelect } from "../hooks/useSelect";
+import { useForm } from "../hooks/useForm";
+import { useModal } from "../hooks/useModal";
 import Modal from "../components/Modal";
-import Delete from "../components/Delete";
-import Loading from "../components/Loading";
-
+import { Form, Formik } from "formik";
 import FormikInput from "../components/Formikinput";
 import FormikSelect from "../components/Formikselect";
-
-import { useSelect } from "../hooks/useSelect";
-import { useGet, usePost, useDelete } from "../hooks/useApi";
-import { useModal } from "../hooks/useModal";
-import useDel from "../hooks/useDelete";
-import { useForm } from "../hooks/useForm";
-import useQueryState from "../hooks/useQueryState";
-import useSearch from "../hooks/useSearch";
-
-import toFormData from "../utils/toFormData";
-import { productcols } from "../utils/columns";
-import { productSchema } from "../utils/validator";
+import Delete from "../components/Delete";
 import Info from "../components/Info";
-import notify from "../utils/toastr";
 
 function Products() {
   const navigate = useNavigate();
-
-  /*
-    |--------------------------------------------------------------------------
-    | Query State
-    |--------------------------------------------------------------------------
-    */
-
-  const { filters, setFilter, setFilters } = useQueryState({
-    category: "",
-    subcategory: "",
-  });
-
-  const { category, subcategory } = filters;
-
-  /*
-    |--------------------------------------------------------------------------
-    | Modal
-    |--------------------------------------------------------------------------
-    */
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { isOpen, modalData, modalMode, openModal, closeModal } = useModal();
 
-  /*
-    |--------------------------------------------------------------------------
-    | Categories
-    |--------------------------------------------------------------------------
-    */
+  const category = searchParams.get("category") || null;
+  const subcategory = searchParams.get("subcategory") || null;
 
-  const { data: categoriesData = [], isFetched } = useGet(
-    ["categories"],
-    "categories",
-    {
-      staleTime: Infinity,
+  const updateFilters = ({ category, subcategory }) => {
+    const params = new URLSearchParams();
 
-      select: (response) => response?.data || [],
-    },
-  );
+    if (category) {
+      params.set("category", category);
+    }
 
-  const categories = useMemo(() => {
-    return (
-      categoriesData
-        ?.filter((item) => item.parent_id == null)
-        ?.map(({ id, name }) => ({
-          id: String(id),
-          name,
-        })) || []
-    );
-  }, [categoriesData]);
+    if (subcategory) {
+      params.set("subcategory", subcategory);
+    }
 
-  const subcategories = useMemo(() => {
-    if (!category) return [];
+    setSearchParams(params);
+  };
 
-    return (
-      categoriesData
-        ?.filter((item) => String(item.parent_id) === String(category))
-        ?.map(({ id, name }) => ({
-          id: String(id),
-          name,
-        })) || []
-    );
-  }, [categoriesData, category]);
+  const {
+    data: categories = [],
+    isFetched,
+    isLoading: categoriesLoading,
+  } = useCategories();
 
-  const parent = useMemo(() => {
-    if (!category) return [];
+  const parents = useMemo(() => {
+    return categories
+      .filter((item) => item.parent_id == null)
+      .map((item) => ({
+        label: item.name,
+        value: String(item.id),
+        children: item.children || [],
+      }));
+  }, [categories]);
+
+  const selectedCategory = useMemo(() => {
+    return parents.find((item) => item.value === category);
+  }, [parents, category]);
+
+  const childs = useMemo(() => {
+    if (!selectedCategory) return [];
 
     return (
-      categories
-        ?.filter((item) => String(item.id) === String(category))
-        ?.map(({ name }) => name) || []
+      selectedCategory.children.map((item) => ({
+        label: item.name,
+        value: String(item.id),
+      })) || []
     );
-  }, [categories, category]);
-
-  const child = useMemo(() => {
-    if (!subcategory) return null;
-
-    return (
-      categoriesData?.find((item) => String(item.id) === String(subcategory))
-        ?.name || null
-    );
-  }, [categoriesData, subcategory]);
-
-  /*
-    |--------------------------------------------------------------------------
-    | Filters Validation
-    |--------------------------------------------------------------------------
-    */
+  }, [selectedCategory]);
 
   useEffect(() => {
     if (!isFetched) return;
 
-    const validCategory = categories.some((cat) => cat.id === category);
+    if (!category) return;
 
-    if (!validCategory && category) {
-      setFilters({
-        category: "",
+    if (!subcategory) return;
+
+    const exists = childs.some((item) => item.value === subcategory);
+
+    if (!exists) {
+      updateFilters({
+        category,
         subcategory: "",
       });
-
-      return;
     }
-
-    if (subcategory) {
-      const validSubcategory = subcategories.some(
-        (sub) => sub.id === subcategory,
-      );
-
-      if (!validSubcategory) {
-        setFilter("subcategory", "");
-      }
-    }
-  }, [
-    isFetched,
-    categories,
-    subcategories,
-    category,
-    subcategory,
-    setFilter,
-    setFilters,
-  ]);
-
-  /*
-    |--------------------------------------------------------------------------
-    | Products Query
-    |--------------------------------------------------------------------------
-    */
-
-  const queryParams = useMemo(() => {
-    const params = new URLSearchParams();
-
-    if (subcategory) {
-      params.append("category_id", subcategory);
-    } else if (category) {
-      params.append("category_id", category);
-    }
-
-    return params.toString();
-  }, [category, subcategory]);
-
-  const productQueryKey = useMemo(
-    () => ["products", category ?? null, subcategory ?? null],
-    [category, subcategory],
-  );
+  }, [isFetched, category, subcategory, childs]);
 
   const {
     data: products = [],
+    isFetched: productsFetched,
     isLoading,
-    refetch
-    // isFetched,
-  } = useGet(productQueryKey, `products?${queryParams}`, {
-    enabled: true,
-
-    keepPreviousData: true,
-
-    staleTime: 1000 * 60 * 5,
-
-    select: (response) => response?.data?.data || [],
-  });
-
-  /*
-    |--------------------------------------------------------------------------
-    | Normalize Products
-    |--------------------------------------------------------------------------
-    */
+    refetch,
+  } = useProducts(subcategory);
 
   const normalized = useMemo(() => {
-    if (!products) return [];
-
     return products.map((item) => ({
-      id: item?.id,
-      name: item?.name,
-      featured_image: item?.featured_image,
-      status: item?.status,
-      is_featured: item?.is_featured,
-      is_active: item?.is_active,
-      description: item?.description,
-      featured_image_url: item?.featured_image_url,
-      category_id: item?.category_id,
-      subcategory_id: item?.subcategory_id,
+      id: item.id,
+
+      name: item.name,
+
+      featured_image: item.featured_image,
+
+      status: item.status,
+
+      is_featured: item.is_featured,
+
+      is_active: item.is_active,
+
+      description: item.description,
+
+      featured_image_url: item.featured_image_url,
+
+      category_id: item.category_id,
+
+      subcategory_id: item.subcategory_id,
     }));
   }, [products]);
-
-  /*
-    |--------------------------------------------------------------------------
-    | Search
-    |--------------------------------------------------------------------------
-    */
 
   const { search, setSearch, filteredData } = useSearch(normalized ?? [], [
     "name",
     "status",
   ]);
 
-  /*
-    |--------------------------------------------------------------------------
-    | Add Product
-    |--------------------------------------------------------------------------
-    */
-  
+  const productQueryKey = useMemo(
+    () => ["products", subcategory ?? null],
+    [category, subcategory],
+  );
+
   const addProduct = usePost({
     invalidateQueries: productQueryKey,
 
     onSuccess: async () => {
       await refetch();
       notify("تمت العملية بنجاح ", "success");
-      notify('ابدا باضافة اشكال وصور المنتح' , 'success ')
-
+      notify("ابدا باضافة اشكال وصور المنتح", "success ");
     },
 
     onError: () => {
       notify("هناك خطأ ما ", "error");
     },
   });
-
-  /*
-    |--------------------------------------------------------------------------
-    | Delete Product
-    |--------------------------------------------------------------------------
-    */
 
   const deleteProduct = useDelete({
     invalidateQueries: productQueryKey,
@@ -260,7 +160,6 @@ function Products() {
     },
   });
 
- 
   const { deleteOpen, itemName, openDelete, closeDelete, confirmDelete } =
     useDel(async (deletedItem) => {
       try {
@@ -274,12 +173,6 @@ function Products() {
         console.error(error);
       }
     });
-
-  /*
-    |--------------------------------------------------------------------------
-    | Form Submit
-    |--------------------------------------------------------------------------
-    */
 
   const handleSubmit = async (values, { resetForm, setSubmitting }) => {
     try {
@@ -305,9 +198,8 @@ function Products() {
       }
 
       console.log(request);
-      
-      // const response = await request;
 
+      // const response = await request;
 
       // if (modalMode === "add") {
       //   navigate(`/products/${response?.data?.id}`);
@@ -321,12 +213,6 @@ function Products() {
       setSubmitting(false);
     }
   };
-
-  /*
-    |--------------------------------------------------------------------------
-    | Initial Values
-    |--------------------------------------------------------------------------
-    */
 
   const initialValues = useMemo(() => {
     if (modalMode === "edit" && modalData) {
@@ -354,12 +240,6 @@ function Products() {
     };
   }, [modalMode, modalData, subcategory]);
 
-  /*
-    |--------------------------------------------------------------------------
-    | Form
-    |--------------------------------------------------------------------------
-    */
-
   const { formikProps, handleConfirm } = useForm({
     onSubmit: handleSubmit,
 
@@ -367,12 +247,6 @@ function Products() {
 
     validationSchema: productSchema,
   });
-
-  /*
-    |--------------------------------------------------------------------------
-    | Select Options
-    |--------------------------------------------------------------------------
-    */
 
   const { options: statusoptions } = useSelect(() => {
     return [
@@ -389,21 +263,9 @@ function Products() {
     ];
   });
 
-  /*
-    |--------------------------------------------------------------------------
-    | Loading
-    |--------------------------------------------------------------------------
-    */
-
-  if (isLoading) {
-    return <Loading />;
-  }
-
   return (
     <>
-      <Info
-        title={`صفحة المنتجات ${category ? `- ${parent}` : " - ( الرجاء اختار الصنف الرئيسي ) "} ${subcategory ? `- ${child}` : " - ( الرجاء اختار الصنف الفرعي )  "} `}
-      />
+      <Info title={`صفحة المنتجات `} />
 
       <Control
         searchable={true}
@@ -414,65 +276,63 @@ function Products() {
           openModal("add");
         }}
       >
-        <div className="flex gap-x-8">
-          <div className="w-[200px]">
-            <Select
-              label="اختر الصنف الرئيسي"
-              value={category}
-              onChange={(value) => {
-                setFilters({
-                  category: value,
-                  subcategory: "",
-                });
-              }}
-              options={categories.map((item) => ({
-                label: item.name,
-                value: item.id,
-              }))}
-            />
-          </div>
+        <div className="flex gap-x-4">
+          {/* CATEGORY */}
+          {isFetched && (
+            <div className="w-[220px]">
+              <Select
+                label="اختر الصنف الرئيسي"
+                loading={categoriesLoading}
+                value={category}
+                onChange={(value) => {
+                  updateFilters({
+                    category: value,
+                    subcategory: "",
+                  });
+                }}
+                options={parents}
+              />
+            </div>
+          )}
 
-          {/* SUBCATEGORY */}
-          {category && subcategories.length > 0 && (
-            <div className="w-[200px]">
+          {!!category && childs.length > 0 && (
+            <div className="w-[220px]">
               <Select
                 label="اختر الصنف الفرعي"
                 value={subcategory}
                 onChange={(value) => {
-                  setFilter("subcategory", value);
+                  updateFilters({
+                    category,
+                    subcategory: value,
+                  });
                 }}
-                options={subcategories.map((item) => ({
-                  label: item.name,
-                  value: item.id,
-                }))}
+                options={childs}
               />
             </div>
           )}
         </div>
       </Control>
-
-      {subcategory && (
-        <div>
-          <Table
-            columns={productcols}
-            data={filteredData}
-            rowsPerPage={7}
-            showPagination={true}
-            paginationPosition="bottom"
-            actions={{
-              showView: true,
-              showEdit: true,
-              showDelete: true,
-            }}
-            onView={(row) => navigate(`/products/${row.id}`)}
-            onEdit={(row) => {
-              openModal("edit", row);
-            }}
-            onDelete={(row) => {
-              openDelete(row, row.name);
-            }}
-          />
-        </div>
+      {productsFetched && !!subcategory &&  (
+        <Table
+          columns={productcols}
+          data={filteredData}
+          loading={isLoading}
+          rowsPerPage={7}
+          showPagination
+          paginationPosition="bottom"
+          actions={{
+            showView: true,
+            showEdit: true,
+            showDelete: true,
+          }}
+          onView={(row) => navigate(`/products/${row.id}`)}
+          onEdit={(row) => {
+            openModal("edit", row);
+          }}
+          onDelete={(row) => {
+            openDelete(row, row.name);
+          }}
+        />
       )}
 
       {/* MODAL */}
@@ -483,6 +343,7 @@ function Products() {
         size="xl"
         showFooter={true}
         onConfirm={handleConfirm}
+        isConfirmLoading={addProduct.isPending}
       >
         <Formik {...formikProps} enableReinitialize>
           <Form className="space-y-4">

@@ -6,6 +6,7 @@ function Control({
   search,
   setSearch,
   children,
+  children2,
   searchable = true,
 }) {
   return (
@@ -24,13 +25,15 @@ function Control({
           />
         )}
 
+        {children2}
+ 
         {isPlus && (
           <button
             type="button"
             onClick={onClick}
-            className="bordered p-2 rounded  transition-none animate-none"
+            className="bordered p-2 rounded  transition-none animate-none text-cyan-600"
           >
-            <Plus size={20}  />
+            <Plus size={20} />
           </button>
         )}
       </div>
@@ -45,6 +48,8 @@ Control.propTypes = {
   search: PropTypes.string,
   setSearch: PropTypes.func,
   children: PropTypes.node,
+  children2: PropTypes.node,
+
 };
 
 export default Control;

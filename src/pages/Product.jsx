@@ -1,134 +1,118 @@
 import { useParams } from "react-router-dom";
-import { useGet, usePost, useDelete } from "../hooks/useApi";
+import { useAttributes, useVariations } from "../hooks/useData";
 import { useEffect, useMemo } from "react";
 import usePersisted from "../hooks/usePersisted";
-import { Formik, Form, FieldArray } from "formik";
-import { Pencil, Plus, Trash2 } from "lucide-react";
-import Imagegallery from "../components/Imagegallery";
-import Control from "../components/Control";
-import Modal from "../components/Modal";
-import FormikInput from "../components/Formikinput";
-import FormikSelect from "../components/Formikselect";
-import Formikimagem from "../components/Formikimagem";
-import { AttributeOptionSelect } from "../components/Loadoptions";
-import Delete from "../components/Delete";
-import notify from "../utils/toastr";
-import Info from "../components/Info";
 import { useModal } from "../hooks/useModal";
+import { useDelete, usePost } from "../hooks/useApi";
+import notify from "../utils/toastr";
 import { useForm } from "../hooks/useForm";
 import { variationSchema } from "../utils/validator";
 import useDel from "../hooks/useDelete";
+import Info from "../components/Info";
+import Control from "../components/Control";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import Modal from "../components/Modal";
+import { FieldArray, Form, Formik } from "formik";
+import FormikInput from "../components/Formikinput";
+import FormikSelect from "../components/Formikselect";
+import { AttributeOptionSelect } from "../components/Loadoptions";
+import Formikimagem from "../components/Formikimagem";
+import Delete from "../components/Delete";
+import Imagegallery from "../components/Imagegallery";
+import Exchangerate from "../components/Exchangerate";
 
 function Product() {
   const { id } = useParams();
-  const productId = Number(id);
+  const { data = [], refetch } = useVariations(id);
 
-  const { data: attributesdata = [] } = useGet(["attributes"], "attributes", {
-    staleTime: Infinity,
-    select: (response) => response?.data?.data || [],
-  });
+  const { data: attributes = [] } = useAttributes();
 
   const attributesoptions = useMemo(() => {
+    if (!attributes) return [];
     return (
-      attributesdata?.map(({ id, name }) => ({
+      attributes?.map(({ id, name }) => ({
         label: name,
         value: String(id),
       })) || []
     );
-  }, [attributesdata]);
-
-  const { data = {}, refetch } = useGet(
-    ["products", productId],
-    `products/${productId}`,
-    {
-      enabled: true,
-      keepPreviousData: true,
-      staleTime: 1000 * 60 * 5,
-      select: (res) => res?.data || {},
-    },
-  );
+  }, [attributes]);
 
   const normalized = useMemo(() => {
-    if (!data) return null;
+    if (!data) return [];
 
-    return {
-      id: data?.id,
-      name: data?.name,
+    return (
+      data?.map((item) => ({
+        id: item.id,
 
-      variations:
-        data?.variations?.map((item) => ({
-          id: item.id,
-          sku: item.sku,
-          price: item.price,
-          quantity: item.quantity,
+        name: item.product.name,
 
-          images:
-            item.images?.map((img) => ({
-              id: img.id,
-              path_url: img.path_url,
-              existing: true,
-            })) || [],
+        sku: item.sku,
 
-          attributes:
-            item.attributes?.map((attr) => ({
-              id: attr.id,
+        sell_price: item.sell_price,
+        base_price: item.base_price,
+        sell_rate: item.sell_rate,
 
-              attribute_id: attr.option?.attribute?.id
-                ? String(attr.option.attribute.id)
-                : "",
+        buy_price: item.buy_price,
+        base_buy_price: item.base_buy_price,
+        buy_rate: item.buy_rate,
 
-              attribute_name: attr.option?.attribute?.name || "",
+        final_price: item.final_price,
 
-              attribute_option_id: attr.option?.id
-                ? String(attr.option.id)
-                : "",
+        quantity: item.quantity,
 
-              attribute_option_name: attr.option?.value || "",
-            })) || [],
+        images:
+          item.images?.map((img) => ({
+            id: img.id,
+            path_url: img.path_url,
+            existing: true,
+          })) || [],
 
-          characteristics:
-            item.characteristics?.map((c) => ({
-              id: c.id,
-              attribute: c.attribute,
-            })) || [],
-        })) || [],
-    };
+        attributes:
+          item.attributes?.map((attr) => ({
+            id: attr.id,
+
+            attribute_id: attr.option?.attribute?.id
+              ? String(attr.option.attribute.id)
+              : "",
+
+            attribute_name: attr.option?.attribute?.name || "",
+
+            attribute_option_id: attr.option?.id ? String(attr.option.id) : "",
+
+            attribute_option_name: attr.option?.value || "",
+
+            price_override: attr.price_override,
+          })) || [],
+
+        characteristics:
+          item.characteristics?.map((c) => ({
+            id: c.id,
+            attribute: c.attribute,
+          })) || [],
+      })) || []
+    );
   }, [data]);
 
   const [currentid, setCurrentid] = usePersisted("currentid", null);
 
   const current = useMemo(() => {
-    if (!normalized?.variations?.length) return null;
+    if (!normalized?.length) return null;
 
-    return (
-      normalized.variations.find((v) => v.id === currentid) ||
-      normalized.variations[0]
-    );
+    return normalized.find((item) => item.id === currentid) || normalized[0];
   }, [normalized, currentid]);
 
   useEffect(() => {
-    if (!normalized?.variations?.length) return;
+    if (!normalized?.length) return;
 
     if (!currentid) {
-      setCurrentid(normalized.variations[0].id);
+      setCurrentid(normalized[0].id);
     }
   }, [normalized, currentid, setCurrentid]);
-
-  const variations = useMemo(() => {
-    return (
-      normalized?.variations?.map((item) => ({
-        id: item.id,
-        path_url: item?.images?.[0]?.path_url || "",
-        attributes: item.attributes,
-      })) || []
-    );
-  }, [normalized]);
 
   const attributesGrouped = [
     ...new Set(current?.attributes?.map((item) => item.attribute_name) || []),
   ]
-
-  .filter((name) => name !== "اللون")
+    .filter((name) => name !== "اللون")
 
     .map((attributeName) => {
       const attributeValuesSet = [
@@ -148,7 +132,7 @@ function Product() {
   const { isOpen, modalData, modalMode, openModal, closeModal } = useModal();
 
   const addVariation = usePost({
-    invalidateQueries: ["variations"],
+    invalidateQueries: [["variations"], ["products", id]],
     onSuccess: async () => {
       await refetch();
       notify("تمت العملية بنجاح ", "success");
@@ -160,7 +144,7 @@ function Product() {
   });
 
   const deleteVariation = useDelete({
-    invalidateQueries: ["variations"],
+    invalidateQueries: [["variations"], ["products", id]],
     onSuccess: async () => {
       await refetch();
       notify("تمت العملية بنجاح ", "success");
@@ -174,10 +158,11 @@ function Product() {
   const initialValues = useMemo(() => {
     if (modalMode === "edit" && modalData) {
       return {
-        product_id: productId,
+        product_id: id,
 
         sku: modalData.sku || "",
-        price: modalData.price || "",
+        base_price: modalData.base_price || "",
+        base_buy_price: modalData.base_buy_price || "",
         quantity: modalData.quantity || "",
 
         images:
@@ -194,6 +179,7 @@ function Product() {
                 {
                   attribute_id: "",
                   attribute_option_id: "",
+                  price_override: "",
                 },
               ],
         characteristics:
@@ -208,9 +194,10 @@ function Product() {
     }
 
     return {
-      product_id: productId,
+      product_id: id,
       sku: "",
-      price: "",
+      base_price: "",
+      base_buy_price: "",
       quantity: "",
 
       images: [],
@@ -219,6 +206,7 @@ function Product() {
         {
           attribute_id: "",
           attribute_option_id: "",
+          price_override: "",
         },
       ],
       characteristics: [
@@ -228,7 +216,7 @@ function Product() {
         },
       ],
     };
-  }, [modalMode, modalData, productId]);
+  }, [modalMode, modalData, id]);
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
@@ -236,24 +224,30 @@ function Product() {
 
       formData.append("product_id", values.product_id);
       formData.append("sku", values.sku);
-      formData.append("price", values.price);
+      formData.append("base_price", values.base_price);
+      formData.append("base_buy_price", values.base_buy_price);
+
       formData.append("quantity", values.quantity);
 
       formData.append("attributes_count", values.attributes.length);
 
       if (values.attributes && values.attributes.length > 0) {
-        values.attributes.forEach((attribute, index) => {
-          if (attribute.attribute_id && attribute.attribute_option_id) {
-            formData.append(
-              `attributes[${index}][attribute_id]`,
-              attribute.attribute_id,
-            );
-
-            formData.append(
-              `attributes[${index}][attribute_option_id]`,
-              attribute.attribute_option_id,
-            );
-          }
+        const cleanedAttributes = values.attributes.filter(
+          (a) => a.attribute_id && a.attribute_option_id,
+        );
+        cleanedAttributes.forEach((attribute, index) => {
+          formData.append(
+            `attributes[${index}][attribute_id]`,
+            attribute.attribute_id,
+          );
+          formData.append(
+            `attributes[${index}][attribute_option_id]`,
+            attribute.attribute_option_id,
+          );
+          formData.append(
+            `attributes[${index}][price_override]`,
+            attribute.price_override || null,
+          );
         });
       }
 
@@ -314,6 +308,7 @@ function Product() {
         | Request
         |--------------------------------------------------------------------------
         */
+      console.log(formData);
 
       let request;
 
@@ -357,24 +352,46 @@ function Product() {
       closeDelete();
     });
 
+  console.log("", current);
+
+  // if (current) {
   return (
     <>
+      {current && (
+        <Info
+          title={` أشكال وصفات المنتج  ${current?.name} ( ${normalized?.length} )  `}
+          back={true}
+        />
+      )}
 
-    {
-        current &&  <Info title={` أشكال وصفات المنتج "${data?.name}" `} back={true} />
-    } 
-    
-      <Control onClick={() => openModal("add")} searchable={false}>
-        {current && (
-          <>
-            <Pencil
-              className=" bordered text-blue-600"
-              onClick={() => openModal("edit", current)}
-              size={20}
-            />
-            <Trash2 onClick={() => openDelete(current, ` الشكل رقم ${current?.id}`)} className=" bordered text-red-600 " size={20} />
-          </>
-        )}
+      <Control
+        onClick={() => openModal("add")}
+        searchable={false}
+        children2={
+          current ? (
+            <div className="flex w-full justify-start gap-x-4 text-end">
+              <div className="bordered p-2 rounded transition-none animate-none">
+                <Trash2
+                  onClick={() =>
+                    openDelete(current, ` الشكل رقم ${current?.id}`)
+                  }
+                  className="text-red-600"
+                  size={20}
+                />
+              </div>
+
+              <div className="bordered p-2 rounded transition-none animate-none">
+                <Pencil
+                  className="text-blue-600"
+                  onClick={() => openModal("edit", current)}
+                  size={20}
+                />
+              </div>
+            </div>
+          ) : null
+        }
+      >
+        <></>
       </Control>
 
       <Modal
@@ -384,19 +401,25 @@ function Product() {
         showFooter
         size="2xl"
         onConfirm={handleConfirm}
+        isConfirmLoading={addVariation.isPending}
       >
         <Formik {...formikProps} enableReinitialize>
           {({ values }) => (
             <Form className="space-y-6">
               {/* BASIC INFO */}
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <FormikInput
                   name="sku"
                   label="الكود( يجب ان لا تتكرر القيمة  ) : "
                 />
 
-                <FormikInput name="price" label="السعر:" />
+                <FormikInput
+                  name="base_buy_price"
+                  label="سعر الشراء بالدولار:"
+                />
+
+                <FormikInput name="base_price" label="سعر البيع بالدولار:" />
 
                 <FormikInput name="quantity" label="الكمية المتوفرة:" />
               </div>
@@ -415,6 +438,7 @@ function Product() {
                           push({
                             attribute_id: "",
                             attribute_option_id: "",
+                            price_override: "",
                           })
                         }
                         className="border p-2 rounded"
@@ -429,12 +453,17 @@ function Product() {
                             label="اختر الصفة"
                             options={attributesoptions}
                           />
-
                           <AttributeOptionSelect
                             index={index}
                             attributeId={item.attribute_id}
-                            attributesdata={attributesdata}
+                            attributesdata={attributes}
                           />
+
+                          {/* <FormikInput
+                            name={`attributes.${index}.price_override`}
+                            type="number"
+                            label="سعر خاص للصفة؟"
+                          /> */}
 
                           <Trash2
                             size={24}
@@ -507,101 +536,106 @@ function Product() {
         onConfirm={confirmDelete}
       />
       {current && (
-        <div className="grid grid-cols-3 gap-x-16 py-2">
+        <div className="grid grid-cols-3 gap-x-16 py-4">
           <Imagegallery
             images={current?.images ?? []}
-            variations={variations}
+            variations={
+              normalized?.map((item) => ({
+                id: item.id,
+                path_url: item.images?.[0]?.path_url || null,
+              })) || []
+            }
             onClick={(item) => setCurrentid(item.id)}
           />
 
-          <div className="col-span-2">
-            <div className="price text-sm  flex flex-col  gap-y-6">
-              <div className="grid grid-cols-2 gap-y-6">
-                <span> اسم المنتج : {normalized?.name}</span>
+          <div className=" flex flex-col text-sm gap-y-5">
+            <span> الرمز : {current?.sku ?? 0} </span>
 
-                <span>الرمز : {current?.sku ?? 0} </span>
+            <span>
+              سعر الشراء : {current?.base_buy_price ?? 0}$ ={" "}
+              {current?.buy_price ?? 0} ل.س{" "}
+            </span>
 
-                <span>السعر : {current?.price ?? 0} ل.س</span>
+            <span>
+              سعر البيع : {current?.base_price ?? 0}$ ={" "}
+              {current?.sell_price ?? 0} ل.س{" "}
+            </span>
 
-                <span>الكمية المتوفرة : {current?.quantity ?? 0} </span>
-              </div>
-
-              <div className="mt-6 space-y-6">
-                {attributesGrouped.map((group) => (
-                  <div key={group.attributeName}>
-                    <h3 className="mb-4 price ">{group.attributeName}</h3>
-
-                    <div className="flex flex-wrap gap-3">
-                      {group.attributeValuesSet.map((option) => {
-                        
-                        // const isActive = current?.attributes?.find(
-                        //   (attr) =>
-                        //     attr.attribute_name === group.attributeName &&
-                        //     attr.attribute_option_name === option,
-                        // );
-
-
-
-                        return (
-                          <button
-                            key={option}
-                            type="button"
-                            className={`
-                          rounded-lg
-                          px-4
-                          py-2
-                          text-sm
-                          transition-all
-                          duration-200
-                           bg-white border-[1px] border-cyan-600 text-cyan-600
-
-                        `}
-                          >
-                            {option}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="flex gap-x-2 items-center">
+              <span>الكمية المتوفرة :</span>
+              {current?.quantity < 5 ? (
+                <span className="mb-1 text-red-600">
+                  باقي فقط {current.quantity}
+                </span>
+              ) : current?.quantity < 10 ? (
+                <span className="mb-1 text-yellow-600">
+                  باقي فقط {current.quantity}
+                </span>
+              ) : (
+                <span>{current?.quantity ?? 0}</span>
+              )}
             </div>
 
-            {current?.characteristics?.length > 0 && (
-              <div className=" bordered border-b-0 border-x-0  mt-12">
-                {current?.characteristics?.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className=" name text-xs sm:text-sm">الخصائص</h3>
+            <Exchangerate />
+            
+            {attributesGrouped?.length > 0 && (
 
-                    <ul className="space-y-3 rounded-lg  pt-4">
-                      {current?.characteristics?.map((item) => (
-                        <li
-                          key={item.id}
-                          className="
-                              flex
+            <div className="pt-4 space-y-2 border-t-[1px] border-cyan-600 my-4">
+              <span className=" text-cyan-600">الصفات المتوفرة : </span>
+              {attributesGrouped.map((group) => (
+                <div
+                  key={group.attributeName}
+                  className=" flex flex-col gap-y-2 "
+                >
+                  <h3 className=" text-sm ">{group.attributeName}</h3>
 
-                              items-center
-                              gap-3
-                              text-sm
-                              text-gray-700
-                            "
+                  <div className="flex flex-wrap gap-3">
+                    {group.attributeValuesSet.map((option) => {
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          className={`
+                            rounded-lg
+                            px-4
+                            py-2
+                            text-xs
+                            transition-all
+                            duration-200
+                            bg-white border-[1px] border-cyan-600 text-cyan-600
+                          `}
                         >
-                          <span
-                            className="
-                              h-1
-                              w-1
-                              shrink-0
-                              rounded-full
-                              bg-cyan-500
-                            "
-                          />
-
-                          <span className="leading-6">{item.attribute}</span>
-                        </li>
-                      ))}
-                    </ul>
+                          {option}
+                        </button>
+                      );
+                    })}
                   </div>
+                </div>
+              ))}
+            </div>
+            )}
+
+            {current?.characteristics?.length > 0 && (
+              <div className="pt-4 space-y-2 border-t-[1px] border-cyan-600 my-0">
+                <span className=" text-cyan-600">الخصائص : </span>
+                {current?.characteristics?.length > 0 && (
+                  <ul className="space-y-2 rounded-lg">
+                    {current?.characteristics?.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-center gap-3 text-sm "
+                      >
+                        <span className="leading-6 ps-2">{item.attribute}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
+
+                {/* {current?.characteristics?.length > 0 && (
+                <div className=" bordered border-b-0 border-x-0  mt-12">
+
+                </div>
+              )} */}
               </div>
             )}
           </div>
@@ -609,6 +643,7 @@ function Product() {
       )}
     </>
   );
+  // }
 }
 
 export default Product;

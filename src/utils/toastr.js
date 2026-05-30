@@ -2,7 +2,7 @@ import { toast } from "react-toastify";
 
 const notify = (msg, type) => {
   const toastId = toast(msg, {
-    position: "top-right",
+    position: "top-left",
     closeButton: false,
     autoClose: 2000,
     isLoading: true, 

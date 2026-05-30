@@ -4,7 +4,7 @@ import Input from "./Input";
 
 export default function FormikInput({
   name,
-  type='textp',
+  type='text',
   ...props
 }) {
   const [field, meta, helpers] = useField(name);

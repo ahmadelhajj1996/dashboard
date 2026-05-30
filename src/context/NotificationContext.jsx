@@ -1,37 +1,34 @@
 import PropTypes from "prop-types";
-
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-
 import { useSelector } from "react-redux";
-
 import api from "../utils/axios";
-
 import { createEcho } from "../utils/echo";
-
 import notify from "../utils/toastr";
-
 const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
   const { admin, token } = useSelector((state) => state.auth);
-
   const adminId = admin?.id;
-
   const [notifications, setNotifications] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const [exchangeRate, setExchangeRate] = useState(() => {
+    try {
+      const stored = localStorage.getItem("exchange-rate");
+      return stored ? JSON.parse(stored) : 'انقر على تحديث';
+    } catch (error) {
+      console.error("Failed to parse exchange rate:", error);
+      return null;
+    }
+  });
 
   const fetchNotifications = async () => {
     try {
-
       const res = await api.get("admin/notifications");
-
       const data = res.data.data || [];
 
       setNotifications(data);
-
       setUnreadCount(data.filter((item) => !item.read_at).length);
     } catch (error) {
       console.error(error);
@@ -41,16 +38,12 @@ export function NotificationProvider({ children }) {
   };
 
   useEffect(() => {
-    if (!adminId || !token) {
-      return;
-    }
+    if (!adminId || !token) return;
 
     fetchNotifications();
 
     const echo = createEcho(token);
-
     const channelName = `App.Models.Admin.${adminId}`;
-
     const channel = echo.private(channelName);
 
     channel.notification((notification) => {
@@ -58,16 +51,12 @@ export function NotificationProvider({ children }) {
 
       const newNotification = {
         id: crypto.randomUUID(),
-
         data: notification,
-
         read_at: null,
-
         created_at: new Date().toISOString(),
       };
 
       setNotifications((prev) => [newNotification, ...prev]);
-
       setUnreadCount((prev) => prev + 1);
 
       notify(notification.title, "info");
@@ -95,6 +84,13 @@ export function NotificationProvider({ children }) {
     }
   };
 
+  // ✅ NEW: update exchange rate globally
+  const updateExchangeRate = (rateData) => {
+    setExchangeRate(rateData);
+    localStorage.setItem("exchange-rate",   JSON.stringify(rateData));
+    notify(`تم تحديث سعر الصرف: ${rateData.rate} ل.س`, "success");
+  };
+
   const value = useMemo(() => {
     return {
       notifications,
@@ -102,8 +98,13 @@ export function NotificationProvider({ children }) {
       unreadCount,
       markAllAsRead,
       fetchNotifications,
+
+      // ✅ exposed globally
+      exchangeRate,
+      setExchangeRate,
+      updateExchangeRate,
     };
-  }, [notifications, loading, unreadCount]);
+  }, [notifications, loading, unreadCount, exchangeRate]);
 
   return (
     <NotificationContext.Provider value={value}>
@@ -127,10 +128,3 @@ export function useNotifications() {
 NotificationProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
-
-
-  
-
-
-
-

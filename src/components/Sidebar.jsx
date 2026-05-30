@@ -1,61 +1,77 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { useMemo } from "react";
-import { items } from "../utils/constants";
+import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
 
-function Sidebar() {
+function Sidebar({ items, currentLink, onChange }) {
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const activePath = location.pathname;
+  const isActive = (link) => {
+    if (!link) return false;
 
-  const isActiveLink = useMemo(() => {
-    return (link) => {
-      if (!link) return false;
+    const cleanCurrent = (currentLink || "").replace(/\/$/, "");
+    const cleanLink = link.replace(/\/$/, "");
 
-      // Normalize trailing slashes
-      const cleanPath = activePath.replace(/\/$/, "");
-      const cleanLink = link.replace(/\/$/, "");
+    // ✅ special case for home "/"
+    if (cleanLink === "") return cleanCurrent === "";
 
-      // Root exact match OR nested routes match
-      return cleanPath === cleanLink || cleanPath.startsWith(cleanLink + "/");
-    };
-  }, [activePath]);
+    if (cleanLink === "/") {
+      return cleanCurrent === "";
+    }
 
-  const getLinkClasses = (link) => {
-    return `
-      cursor-pointer transition-colors duration-200 p-4 tracking-widest text-lg 
-      ${isActiveLink(link) ? "active" : "inactive"}
-    `;
+    return (
+      cleanCurrent === cleanLink || cleanCurrent.startsWith(cleanLink + "/")
+    );
+  };
+
+  const handleClick = (link) => {
+    onChange(link); 
+    navigate(link); 
   };
 
   return (
-    <div className="w-[225px] h-screen border bg-white bordered">
-      <h1 className="h-[73px] flex justify-center items-center tracking-widest text-lg italic text-cyan-600 bordered border-e-0 ">
+    <div className="w-[225px] h-screen bordered bg-white">
+      <span className="h-[73px] flex justify-center items-center tracking-widest text-lg italic text-cyan-600">
         لوحة التحكم
-      </h1>
+      </span>
 
-      <div className="flex flex-col divide ">
-        {items.map((e, index) => (
-          <div key={index}>
+      <div className="flex flex-col  bordered border-x-0 border-b-0">
+        {items.map((item) => {
+          const active = isActive(item.link);
+          return (
             <div
-              className={getLinkClasses(e.link)}
-              onClick={() => navigate(e.link)}
+              key={item.link}
+              onClick={() => handleClick(item.link)}
               role="button"
               tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  navigate(e.link);
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  handleClick(item.link);
                 }
               }}
-              aria-current={isActiveLink(e.link) ? "page" : undefined}
+              className={`
+                cursor-pointer p-4   rounded  transition-colors
+                ${active ? "bg-cyan-600 text-white" : "text-gray-700 "}
+              `}
             >
-              {e.title}
+              {item.title}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
+
+Sidebar.propTypes = {
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      title: PropTypes.string.isRequired,
+      link: PropTypes.string.isRequired,
+    }),
+  ).isRequired,
+
+  currentLink: PropTypes.string.isRequired,
+
+  onChange: PropTypes.func.isRequired,
+};
 
 export default Sidebar;

@@ -1,7 +1,7 @@
 export const items = [
   {
     title: " الرئيسية",
-    link: "/home",
+    link: "/",
   },
   // {
   //   title: " الاشعارات",
@@ -32,8 +32,10 @@ export const items = [
     title: "الرسائل الترحيبية",
     link: "/messages",
   },
-
-  
+  {
+    title: "الاعدادات",
+    link: "/settings",
+  },
 ];
 
 export const adminValues = {

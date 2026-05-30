@@ -122,8 +122,9 @@ const Modal = ({
                   className="px-4 py-2 text-white bg-cyan-600 rounded hover:bg-cyan-800 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isConfirmLoading}
                 >
-                  {isConfirmLoading ? "Processing..." : confirmText}
+                  {isConfirmLoading ? "جاري المعالحة..." : confirmText}
                 </button>
+    
                 <button
                   type="cancel"
                   onClick={handleClose}

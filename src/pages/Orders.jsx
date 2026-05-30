@@ -3,12 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import Control from "../components/Control";
 import Table from "../components/Table";
-import Loading from "../components/Loading";
 
 import { ordercols } from "../utils/columns";
-import { useGet } from "../hooks/useApi";
 import useSearch from "../hooks/useSearch";
 import Info from "../components/Info";
+import { useOrders } from "../hooks/useData";
 
 function Orders() {
   const navigate = useNavigate();
@@ -16,37 +15,8 @@ function Orders() {
 
   const clientId = searchParams.get("client_id");
 
-  /*
-  |--------------------------------------------------------------------------
-  | API URL
-  |--------------------------------------------------------------------------
-  */
+  const { data, isFetched } = useOrders(clientId ?? null);
 
-  const url = clientId
-    ? `orders?client_id=${clientId}`
-    : "orders";
-
-  /*
-  |--------------------------------------------------------------------------
-  | Fetch Orders
-  |--------------------------------------------------------------------------
-  */
-
-  const {
-    data = [],
-    isFetched,
-    isLoading,
-  } = useGet(["orders", clientId], url, {
-    staleTime: Infinity,
-    select: (response) =>
-      response?.data?.data || [],
-  });
-
-  /*
-  |--------------------------------------------------------------------------
-  | Normalize Data
-  |--------------------------------------------------------------------------
-  */
 
   const normalized = useMemo(() => {
     if (!data) return [];
@@ -63,51 +33,28 @@ function Orders() {
     }));
   }, [data]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Search
-  |--------------------------------------------------------------------------
-  */
-
-  const {
-    search,
-    setSearch,
-    filteredData,
-  } = useSearch(normalized, [
+  const { search, setSearch, filteredData } = useSearch(normalized, [
     "order_number",
     "name",
     "phone",
     "status",
   ]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Loading
-  |--------------------------------------------------------------------------
-  */
-
-  if (!isFetched || isLoading) {
-    return <Loading  />;
-  }
-
   return (
     <>
+      <Info title={`  صفحة الطلبات `} />
 
-       <Info title={`  صفحة الطلبات `} />
-    
       <Control
         isPlus={false}
         searchable={true}
         search={search}
         setSearch={setSearch}
       />
-
+      {isFetched && (
         <Table
           columns={ordercols}
           data={filteredData}
-          onView={(row) =>
-            navigate(`/orders/${row.id}`)
-          }
+          onView={(row) => navigate(`/orders/${row.id}`)}
           rowsPerPage={9}
           showPagination={true}
           paginationPosition="bottom"
@@ -115,6 +62,7 @@ function Orders() {
             showView: true,
           }}
         />
+      )}
     </>
   );
 }

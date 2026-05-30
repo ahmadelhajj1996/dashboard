@@ -16,7 +16,8 @@ const Login = () => {
     try {
      
       const response = await axios.post(
-        "https://phplaravel-1626350-6427540.cloudwaysapps.com/api/admin/login",
+        "http://127.0.0.1:8000/api/admin/login",
+        // "https://phplaravel-1626350-6427540.cloudwaysapps.com/api/admin/login",
         values,
       );
 
@@ -28,7 +29,7 @@ const Login = () => {
       );
 
 
-      navigatet("/home");
+      navigatet("/");
       notify("تم تسجيل الدخول", "success");
       resetForm();
       localStorage.setItem('token' , response.data.access_token)

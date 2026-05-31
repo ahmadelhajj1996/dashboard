@@ -47,6 +47,20 @@ export function NotificationProvider({ children }) {
     }
   });
 
+  useEffect(() => {
+  const unlockAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.play().then(() => {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }).catch(() => {});
+    }
+
+    window.removeEventListener("click", unlockAudio);
+  };
+
+  window.addEventListener("click", unlockAudio);
+}, []);
   const fetchNotifications = async () => {
     try {
       const res = await api.get("admin/notifications");

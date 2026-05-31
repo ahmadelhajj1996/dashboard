@@ -1,24 +1,48 @@
 import PropTypes from "prop-types";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import { useSelector } from "react-redux";
 import api from "../utils/axios";
 import { createEcho } from "../utils/echo";
 import notify from "../utils/toastr";
+
 const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
   const { admin, token } = useSelector((state) => state.auth);
+
   const adminId = admin?.id;
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // ✅ notification sound
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    audioRef.current = new Audio("/sounds/notification.mp3");
+
+    // optional
+    audioRef.current.preload = "auto";
+    audioRef.current.volume = 1;
+  }, []);
+
   const [exchangeRate, setExchangeRate] = useState(() => {
     try {
       const stored = localStorage.getItem("exchange-rate");
-      return stored ? JSON.parse(stored) : 'انقر على تحديث';
+
+      return stored ? JSON.parse(stored) : "انقر على تحديث";
     } catch (error) {
       console.error("Failed to parse exchange rate:", error);
+
       return null;
     }
   });
@@ -26,6 +50,7 @@ export function NotificationProvider({ children }) {
   const fetchNotifications = async () => {
     try {
       const res = await api.get("admin/notifications");
+
       const data = res.data.data || [];
 
       setNotifications(data);
@@ -43,11 +68,22 @@ export function NotificationProvider({ children }) {
     fetchNotifications();
 
     const echo = createEcho(token);
+
     const channelName = `App.Models.Admin.${adminId}`;
+
     const channel = echo.private(channelName);
 
     channel.notification((notification) => {
       console.log("NEW NOTIFICATION", notification);
+
+      // ✅ play sound
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+
+        audioRef.current.play().catch((error) => {
+          console.log("Audio play blocked:", error);
+        });
+      }
 
       const newNotification = {
         id: crypto.randomUUID(),
@@ -57,6 +93,7 @@ export function NotificationProvider({ children }) {
       };
 
       setNotifications((prev) => [newNotification, ...prev]);
+
       setUnreadCount((prev) => prev + 1);
 
       notify(notification.title, "info");
@@ -84,10 +121,11 @@ export function NotificationProvider({ children }) {
     }
   };
 
-  // ✅ NEW: update exchange rate globally
   const updateExchangeRate = (rateData) => {
     setExchangeRate(rateData);
-    localStorage.setItem("exchange-rate",   JSON.stringify(rateData));
+
+    localStorage.setItem("exchange-rate", JSON.stringify(rateData));
+
     notify(`تم تحديث سعر الصرف: ${rateData.rate} ل.س`, "success");
   };
 
@@ -98,8 +136,6 @@ export function NotificationProvider({ children }) {
       unreadCount,
       markAllAsRead,
       fetchNotifications,
-
-      // ✅ exposed globally
       exchangeRate,
       setExchangeRate,
       updateExchangeRate,

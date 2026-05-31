@@ -23,6 +23,7 @@ import Exchangerate from "../components/Exchangerate";
 
 function Product() {
   const { id } = useParams();
+
   const { data = [], refetch } = useVariations(id);
 
   const { data: attributes = [] } = useAttributes();
@@ -244,6 +245,7 @@ function Product() {
             `attributes[${index}][attribute_option_id]`,
             attribute.attribute_option_id,
           );
+          
           formData.append(
             `attributes[${index}][price_override]`,
             attribute.price_override || null,

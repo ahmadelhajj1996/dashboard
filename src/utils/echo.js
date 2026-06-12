@@ -23,9 +23,9 @@ export const createEcho = (token) => {
 
         encrypted: true,
 
-        authEndpoint: 'http://127.0.0.1:8000/api/admin/broadcasting/auth',
+        // authEndpoint: 'http://127.0.0.1:8000/api/admin/broadcasting/auth',
 
-        // authEndpoint: `https://phplaravel-1626350-6427540.cloudwaysapps.com/api/admin/broadcasting/auth`,
+        authEndpoint: `https://phplaravel-1626350-6427540.cloudwaysapps.com/api/admin/broadcasting/auth`,
 
         auth: {
             headers: {
